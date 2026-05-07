@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.compiler.helpers
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.scalatest.matchers.should.Matchers
 
 import scala.math.Ordering.Implicits.seqOrdering
 
-class SeqSupportTest extends CypherFunSuite with Matchers with CypherScalaCheckDrivenPropertyChecks {
+class SeqSupportTest extends CypherPlannerTestSuite with Matchers with CypherScalaCheckDrivenPropertyChecks {
 
   test("prefix strings with their offset using foldMap") {
     val strings = Seq("foo", "", "a", "bar", "", "b", "a")

@@ -19,10 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class GraphSchemaOptimisationCardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport
+class GraphSchemaOptimisationCardinalityIntegrationTest extends CypherPlannerTestSuite
+    with CardinalityIntegrationTestSupport
     with LogicalPlanningAttributesTestSupport {
 
   private val allNodes: Double = 1000.0

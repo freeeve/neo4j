@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -28,11 +29,10 @@ import org.neo4j.cypher.internal.expressions.functions.PercentileDisc
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Attributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.util.Try
 
-class GroupPercentileFunctionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class GroupPercentileFunctionsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should not rewrite single percentile") {
     val before = new LogicalPlanBuilder(wholePlan = false)

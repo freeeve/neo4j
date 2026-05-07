@@ -25,6 +25,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -50,9 +51,9 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   private val plannerBase = plannerBuilder()

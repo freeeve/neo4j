@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.ordering
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.ir.ordering.ColumnOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class InterestingOrderConfigTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class InterestingOrderConfigTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should report required order on variable") {
     val q = buildSinglePlannerQuery(

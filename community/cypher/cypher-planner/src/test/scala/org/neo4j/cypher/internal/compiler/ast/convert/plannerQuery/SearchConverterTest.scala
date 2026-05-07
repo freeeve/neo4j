@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -30,13 +31,13 @@ import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
 class SearchConverterTest extends SearchConverterTestBase
 class SearchWithComplexPatternConverterTest extends SearchWithComplexPatternConverterTestBase
 
-abstract class SearchConverterTestBase extends CypherFunSuite with LogicalPlanningTestSupport with OptionValues {
+abstract class SearchConverterTestBase extends CypherPlannerTestSuite with LogicalPlanningTestSupport
+    with OptionValues {
 
   protected def buildSinglePlannerQuery(query: String, version: CypherVersion): SinglePlannerQuery =
     buildPlannerQuery(

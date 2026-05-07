@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.Equals
@@ -40,11 +41,10 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.Matcher
 
 class VarLengthPlanningIntegrationTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanningAttributesTestSupport

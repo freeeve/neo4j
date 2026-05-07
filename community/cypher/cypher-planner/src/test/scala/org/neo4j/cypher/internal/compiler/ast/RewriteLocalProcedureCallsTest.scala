@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
@@ -77,7 +78,6 @@ import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.internal.schema.EndpointType
@@ -86,7 +86,7 @@ import org.scalatest.Assertions
 
 import scala.util.Random
 
-class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
+class RewriteLocalProcedureCallsTest extends CypherPlannerTestSuite with TestName with AstConstructionTestSupport {
 
   // Note that the may be fewer tests actually executed, since equal fuzz tests are executed only once
   private val numberOfFuzzTests = 500

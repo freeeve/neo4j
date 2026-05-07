@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.constraints.SchemaValueType
 
 class ResolveImplicitlySolvedPredicatesPlanningIntegrationTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanningAttributesTestSupport {

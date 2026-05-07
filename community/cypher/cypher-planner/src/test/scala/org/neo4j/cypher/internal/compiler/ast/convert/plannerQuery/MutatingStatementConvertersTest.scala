@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -52,11 +53,10 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.AppendedClues
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AppendedClues
+class MutatingStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport with AppendedClues
     with TableDrivenPropertyChecks {
 
   test("setting a node property: MATCH (n) SET n.prop = 42 RETURN n") {

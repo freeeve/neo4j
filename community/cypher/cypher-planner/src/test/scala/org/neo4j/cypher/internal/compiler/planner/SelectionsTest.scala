@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Ors
@@ -27,9 +28,8 @@ import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SelectionsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val aIsPerson = hasLabels("a", "Person")
   private val aIsProgrammer = hasLabels("a", "Programmer")

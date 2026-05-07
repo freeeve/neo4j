@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -37,9 +38,8 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardina
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPlanningAttributesTestSupport
+class recordEffectiveOutputCardinalityTest extends CypherPlannerTestSuite with LogicalPlanningAttributesTestSupport
     with AstConstructionTestSupport {
   private val leafCardinality = 10
 

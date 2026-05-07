@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.InequalityExpression
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
 import org.neo4j.cypher.internal.logical.plans.RangeLessThan
 import org.neo4j.cypher.internal.util.NonEmptyList
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class InequalityRangeSeekableTest extends CypherFunSuite with AstConstructionTestSupport {
+class InequalityRangeSeekableTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("Constructs RangeLessThan") {
     valueRangeSeekable(

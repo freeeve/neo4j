@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LeafPlanSelectorHeuristicTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class LeafPlanSelectorHeuristicTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val nodeByLabelScan: LogicalPlanBuilder => LogicalPlanBuilder =
     _.nodeByLabelScan("x", "Label")

@@ -20,13 +20,13 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.graphdb.schema.IndexType
 
 import scala.util.Random
 
 trait ABCDECardinalityData extends CardinalityIntegrationTestSupport {
-  self: CypherFunSuite =>
+  self: CypherPlannerTestSuite =>
 
   /**
    * Minimum number of nodes in the database.

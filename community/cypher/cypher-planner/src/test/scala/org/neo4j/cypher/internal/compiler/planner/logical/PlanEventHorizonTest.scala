@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
@@ -66,9 +67,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class PlanEventHorizonTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   test("should do projection if necessary") {
     // Given

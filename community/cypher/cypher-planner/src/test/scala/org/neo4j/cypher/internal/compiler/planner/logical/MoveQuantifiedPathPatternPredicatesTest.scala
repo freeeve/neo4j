@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.GroupInequalitiesStep
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -35,9 +36,8 @@ import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class MoveQuantifiedPathPatternPredicatesTest extends CypherFunSuite with LogicalPlanningTestSupport
+class MoveQuantifiedPathPatternPredicatesTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
     with AstConstructionTestSupport {
 
   private def buildSinglePlannerQueryAndRewrite(query: String): SinglePlannerQuery =

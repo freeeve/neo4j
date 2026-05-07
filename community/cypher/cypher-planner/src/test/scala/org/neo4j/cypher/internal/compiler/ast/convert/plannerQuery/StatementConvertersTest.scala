@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.ProjectingUnionAll
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.TestCountdownCancellationChecker
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
@@ -83,11 +84,11 @@ import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Inside
 import org.scalatest.OptionValues
 
-class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport
+class StatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
+    with AstConstructionTestSupport
     with OptionValues with Inside with CypherVersionTestSupport {
 
   private val patternRel = PatternRelationship(v"r", (v"a", v"b"), OUTGOING, Seq.empty, SimplePatternLength)

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.VectorValueConstructor
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.ProcedureTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -30,9 +31,9 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class extractRuntimeConstantsTest extends CypherFunSuite with LogicalPlanningTestSupport with ProcedureTestSupport {
+class extractRuntimeConstantsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
+    with ProcedureTestSupport {
 
   test("should rewrite datetime({date: $d}))") {
     val expr = ors(

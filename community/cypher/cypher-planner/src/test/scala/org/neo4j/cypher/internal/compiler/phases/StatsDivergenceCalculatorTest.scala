@@ -22,10 +22,10 @@ package org.neo4j.cypher.internal.compiler.phases
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherReplanAlgorithm
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.StatsDivergenceCalculator
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class StatsDivergenceCalculatorTest extends CypherFunSuite {
+class StatsDivergenceCalculatorTest extends CypherPlannerTestSuite {
 
   private val defaultInitialThreshold =
     GraphDatabaseSettings.query_statistics_divergence_threshold.defaultValue.toDouble

@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 
 import scala.collection.immutable.BitSet
 
-class DefaultIdRegistryTest extends CypherFunSuite {
+class DefaultIdRegistryTest extends CypherPlannerTestSuite {
 
   test("register and lookup") {
     val r = new DefaultIdRegistry[String]

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.FakeLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SimplifySelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SimplifySelectionsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should rewrite Selection(false, source) to Limit(source, 0)") {
     val source: LogicalPlan = FakeLeafPlan(Set.empty)

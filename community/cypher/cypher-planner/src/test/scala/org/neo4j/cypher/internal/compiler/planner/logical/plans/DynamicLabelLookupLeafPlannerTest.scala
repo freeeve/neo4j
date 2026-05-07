@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicLabelLookupLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class DynamicLabelLookupLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("simple dynamic label scan") {
     val n = v"n"

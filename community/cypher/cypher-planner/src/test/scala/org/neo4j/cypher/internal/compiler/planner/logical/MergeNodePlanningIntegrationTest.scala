@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -43,11 +44,10 @@ import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.Extractors.SetExtractor
 import org.neo4j.graphdb.schema.IndexType
 
-class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class MergeNodePlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   test("should plan single merge node") {

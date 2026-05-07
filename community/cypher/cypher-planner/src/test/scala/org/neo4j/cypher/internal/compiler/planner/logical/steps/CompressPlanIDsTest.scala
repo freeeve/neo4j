@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
@@ -40,9 +41,8 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.IdGen
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CompressPlanIDsTest extends CypherFunSuite with AstConstructionTestSupport {
+class CompressPlanIDsTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val plan = logicalPlanBuilder()
     .produceResults("a")

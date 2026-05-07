@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -39,9 +40,8 @@ import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class AllReducePlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with LogicalPlanAstConstructionTestSupport with CypherVersionTestSupport {
 
   protected val baseConfig: StatisticsBackedLogicalPlanningConfigurationBuilder = plannerBuilder()

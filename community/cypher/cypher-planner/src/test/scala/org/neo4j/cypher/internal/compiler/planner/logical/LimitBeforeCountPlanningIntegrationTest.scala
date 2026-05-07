@@ -19,13 +19,13 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LimitBeforeCountRewriter.limitSafeExpressionFrom
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSupport
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
+class LimitBeforeCountPlanningIntegrationTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with LogicalPlanAstConstructionTestSupport {
 

@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
 import org.neo4j.cypher.internal.expressions.Expression
@@ -54,14 +55,13 @@ import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTDuration
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTPoint
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.values.storable.DurationFields
 import org.neo4j.values.storable.PointFields
 import org.neo4j.values.storable.TemporalValue.TemporalFields
 
 import scala.jdk.CollectionConverters.SetHasAsScala
 
-class CheckForUnresolvedTokensTest extends CypherFunSuite
+class CheckForUnresolvedTokensTest extends CypherPlannerTestSuite
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport
     with CypherVersionTestSupport {

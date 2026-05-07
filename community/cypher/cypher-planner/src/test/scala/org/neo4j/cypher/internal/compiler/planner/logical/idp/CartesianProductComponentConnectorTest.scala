@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CartesianProductComponentConnectorTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class CartesianProductComponentConnectorTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   private def register[X](registry: IdRegistry[X], elements: X*): Goal = Goal(registry.registerAll(elements))
 

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.logical.plans.Argument
@@ -29,9 +30,8 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SimplifyPredicatesTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SimplifyPredicatesTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should rewrite WHERE x.prop in [1] to WHERE x.prop = 1") {
     val argument: LogicalPlan = Argument(Set(v"a"))

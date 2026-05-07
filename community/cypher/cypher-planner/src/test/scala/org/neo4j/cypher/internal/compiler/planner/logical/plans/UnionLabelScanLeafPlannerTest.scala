@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.unionLabelScanLeafPlanner
@@ -28,9 +29,8 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class UnionLabelScanLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val variable = v"n"
 

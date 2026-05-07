@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -46,11 +47,10 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
-class ApplyComponentConnectorTest extends CypherFunSuite with LogicalPlanningTestSupport2 with PlanMatchHelp {
+class ApplyComponentConnectorTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 with PlanMatchHelp {
 
   private def register[X](registry: IdRegistry[X], elements: X*): Goal = Goal(registry.registerAll(elements))
 

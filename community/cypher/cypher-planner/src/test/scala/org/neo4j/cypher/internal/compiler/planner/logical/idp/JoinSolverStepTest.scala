@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.NodeConnection
@@ -29,12 +30,11 @@ import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 import scala.language.implicitConversions
 
-class JoinSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class JoinSolverStepTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   implicit def converter(s: Symbol): String = s.toString()
 

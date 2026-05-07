@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class countStorePlannerConstraintTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class countStorePlannerConstraintTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
 
   // NODES
 

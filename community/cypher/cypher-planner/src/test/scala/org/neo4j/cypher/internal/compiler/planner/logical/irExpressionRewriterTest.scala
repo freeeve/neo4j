@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.expressions.Expression
@@ -30,9 +31,8 @@ import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.ast.ListIRExpression
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class irExpressionRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class irExpressionRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
   private val dummyPlan = AllNodesScan(v"a", Set.empty)
 
   case class TestableIRExpression(expression: IRExpression, expectedRewrite: Expression)

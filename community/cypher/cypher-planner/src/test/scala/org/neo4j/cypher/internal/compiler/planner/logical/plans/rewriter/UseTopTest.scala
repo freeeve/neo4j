@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.Top
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UseTopTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class UseTopTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
   private val leaf = newMockedLogicalPlan()
   private val sortDescriptionX = Seq(Ascending(v"x"))
   private val sortDescriptionY = Seq(Ascending(v"y"))

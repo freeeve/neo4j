@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.AnnotatedLogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.CandidateListFinder.CandidateList
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ConflictFinder.ConflictingPlanPair
@@ -28,12 +29,11 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Ref
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
 //noinspection ZeroIndexToHead
-class CandidateListFinderTest extends CypherFunSuite {
+class CandidateListFinderTest extends CypherPlannerTestSuite {
 
   test("Simple linear plan, 1 conflict") {
     val p = new AnnotatedLogicalPlanBuilder()

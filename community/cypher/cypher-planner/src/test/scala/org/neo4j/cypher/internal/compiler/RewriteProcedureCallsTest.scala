@@ -49,13 +49,12 @@ import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Inside
 
 import scala.util.Success
 import scala.util.Try
 
-class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestSupport with Inside {
+class RewriteProcedureCallsTest extends CypherPlannerTestSuite with AstConstructionTestSupport with Inside {
 
   private val name = procedureName("my", "proc", "foo")
   private val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicates
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.ir.ast.ForAllRepetitions
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class extractQppPredicatesTest extends CypherFunSuite with AstConstructionTestSupport {
+class extractQppPredicatesTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   val `(a) ((n)-[r]->(m))+ (b)`: QuantifiedPathPattern = QuantifiedPathPattern(
     leftBinding = NodeBinding(v"n_inner", v"a"),

@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class UnionPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
 
   test("one UNION all") {
     val cfg = plannerBuilder()

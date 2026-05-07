@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingIndexHint
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
@@ -64,13 +65,12 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.Extractors.SetExtractor
 import org.neo4j.graphdb.schema.IndexType
 
 import scala.language.reflectiveCalls
 
-class NodeIndexSeekLeafPlanningTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class NodeIndexSeekLeafPlanningTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   private val n = v"n"
   private val nProp = prop("n", "prop")

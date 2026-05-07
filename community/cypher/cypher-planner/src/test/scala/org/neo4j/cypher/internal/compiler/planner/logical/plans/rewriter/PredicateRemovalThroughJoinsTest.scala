@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.attribution.Attributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PredicateRemovalThroughJoinsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class PredicateRemovalThroughJoinsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
   private val aHasLabel = hasLabels("a", "LABEL")
   private val pred = equals(literalInt(42), literalInt(42))
 

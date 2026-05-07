@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.ordering
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering.PropertyAndPredicateType
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering.extractVariableForValue
@@ -63,7 +64,6 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.BOTH
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.NONE
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.Matcher
 
 abstract class ResultOrderingTest[OC <: OrderCandidate[OC]](
@@ -73,7 +73,7 @@ abstract class ResultOrderingTest[OC <: OrderCandidate[OC]](
   descX: InterestingOrder,
   orderCandidateFactory: OrderCandidateFactory[OC],
   toInterestingOrder: OC => InterestingOrder
-) extends CypherFunSuite with LogicalPlanningTestSupport2 {
+) extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   implicit val noPlan: Option[LogicalPlan] = None
   implicit val poFactory: ProvidedOrderFactory = DefaultProvidedOrderFactory

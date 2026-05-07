@@ -19,16 +19,16 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.BestPositionFinder.CandidateSetWithMinimum
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
 //noinspection ZeroIndexToHead
-class BestPositionFinderTest extends CypherFunSuite {
+class BestPositionFinderTest extends CypherPlannerTestSuite {
 
   implicit val idGen: IdGen = new SequentialIdGen()
 

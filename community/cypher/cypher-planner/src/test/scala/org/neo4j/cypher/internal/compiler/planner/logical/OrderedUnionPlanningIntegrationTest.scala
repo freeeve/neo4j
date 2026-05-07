@@ -19,15 +19,15 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.OrderedDistinct
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
-class OrderedUnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class OrderedUnionPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
 
   private val planner = plannerBuilder()
     .setAllNodesCardinality(100)

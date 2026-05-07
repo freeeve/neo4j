@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
@@ -38,10 +39,9 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 
-class EmptyRelationshipListEndpointProjectionTest extends CypherFunSuite with PlannerQueryRewriterTest
+class EmptyRelationshipListEndpointProjectionTest extends CypherPlannerTestSuite with PlannerQueryRewriterTest
     with TestName {
 
   override def rewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator): Rewriter = {

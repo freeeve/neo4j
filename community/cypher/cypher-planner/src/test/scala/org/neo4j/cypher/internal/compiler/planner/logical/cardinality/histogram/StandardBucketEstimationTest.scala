@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.defaultAllowedError
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.nPropGtLt_float
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.nPropGtLt_float_int
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.nPropLteV_float
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.nPropLteV_int
 import org.neo4j.cypher.internal.planner.spi.histogram.StandardBucket
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class StandardBucketEstimationTest extends CypherFunSuite {
+class StandardBucketEstimationTest extends CypherPlannerTestSuite {
 
   test("n.prop < v where v is an integer and the bucket is fully out of range") {
     val b = StandardBucket(5, 10, 0.1)

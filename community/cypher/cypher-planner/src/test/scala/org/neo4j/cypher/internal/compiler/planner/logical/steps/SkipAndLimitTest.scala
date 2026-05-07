@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
@@ -36,9 +37,8 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.crea
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Skip
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SkipAndLimitTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SkipAndLimitTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val x = literalUnsignedInt(110)
   private val y = literalUnsignedInt(10)

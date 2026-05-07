@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
@@ -52,9 +53,8 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cost
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport with PlanMatchHelp {
+class OuterHashJoinTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport with PlanMatchHelp {
 
   private val planContext = notImplementedPlanContext(hardcodedStatistics)
 

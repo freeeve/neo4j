@@ -23,15 +23,15 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
+class SpdVectorSearchPlanningIntegrationTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport {

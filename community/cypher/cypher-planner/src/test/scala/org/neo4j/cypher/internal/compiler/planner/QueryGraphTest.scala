@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingIndexHint
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -34,9 +35,8 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
+class QueryGraphTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
   val x = "x"
   val n = "n"
   val m = "m"

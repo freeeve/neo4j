@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.UsingIndexHint
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
@@ -100,11 +101,10 @@ import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InternalException
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSupport2 with PlanMatchHelp
+class LogicalPlanProducerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 with PlanMatchHelp
     with TableDrivenPropertyChecks {
 
   implicit val noPlan: Option[LogicalPlan] = None

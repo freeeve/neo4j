@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphProducer
@@ -29,11 +30,10 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.planner.spi.PlanContext
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 
-class countStorePlannerTest extends CypherFunSuite with LogicalPlanningTestSupport with QueryGraphProducer {
+class countStorePlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport with QueryGraphProducer {
 
   test("should ignore tail") {
     val context = newMockedLogicalPlanningContextWithFakeAttributes(mock[PlanContext])

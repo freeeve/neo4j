@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -65,11 +66,10 @@ import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.WorkReduction
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 import org.scalatest.OptionValues
 
-class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSupport
+class CardinalityCostModelTest extends CypherPlannerTestSuite with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport with OptionValues {
 
   private val SMALL_CHUNK_SIZE = 128

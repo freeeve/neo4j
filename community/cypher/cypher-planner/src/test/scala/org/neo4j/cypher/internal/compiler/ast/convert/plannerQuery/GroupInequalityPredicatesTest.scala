@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.InequalityExpression
@@ -29,9 +30,8 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class GroupInequalityPredicatesTest extends CypherFunSuite with AstConstructionTestSupport {
+class GroupInequalityPredicatesTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val n_prop1 = prop("n", "prop1")
   private val m_prop1 = prop("m", "prop1")

@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ShortestPathCardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport {
+class ShortestPathCardinalityIntegrationTest extends CypherPlannerTestSuite with CardinalityIntegrationTestSupport {
 
   private val allNodes: Double = 10
   private val stopNodes: Double = 7

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class PruningVarExpanderTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("simplest possible query that can use PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)

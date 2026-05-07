@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.util.attribution.Attributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class removeIdenticalPlansTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class removeIdenticalPlansTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
   private val noAttributes = Attributes[LogicalPlan](idGen)
 
   test("should not contain copies") {

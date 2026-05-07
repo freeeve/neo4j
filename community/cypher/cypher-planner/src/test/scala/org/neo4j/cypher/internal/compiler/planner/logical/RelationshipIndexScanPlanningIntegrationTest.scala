@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -31,10 +32,9 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexContai
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
-class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
+class RelationshipIndexScanPlanningIntegrationTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with BeLikeMatcher {

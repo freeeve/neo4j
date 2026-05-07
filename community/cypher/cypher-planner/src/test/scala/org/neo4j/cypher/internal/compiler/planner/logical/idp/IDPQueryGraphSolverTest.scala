@@ -24,6 +24,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
@@ -62,12 +63,12 @@ import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.exceptions.TestFailedException
 
 import scala.language.reflectiveCalls
 
-class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSupport2 with AstConstructionTestSupport {
+class IDPQueryGraphSolverTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2
+    with AstConstructionTestSupport {
   self =>
 
   case class EmptySolverConfig() extends SingleComponentIDPSolverConfig() {

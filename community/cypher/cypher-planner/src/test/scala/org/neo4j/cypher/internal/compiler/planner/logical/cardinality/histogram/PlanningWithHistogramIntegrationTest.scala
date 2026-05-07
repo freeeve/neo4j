@@ -21,11 +21,11 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PlanningWithHistogramIntegrationTest extends CypherFunSuite
+class PlanningWithHistogramIntegrationTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 

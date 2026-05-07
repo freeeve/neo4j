@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.CountStar
@@ -70,9 +71,8 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.inSequence
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSupport {
+class CreateIrExpressionsTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val n = v"n"
   private val m = v"m"

@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
 import org.neo4j.cypher.internal.expressions.HasDegree
@@ -89,10 +90,10 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.StorableType
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
-class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOps with AstConstructionTestSupport {
+class EagerWhereNeededRewriterTest extends CypherPlannerTestSuite with LogicalPlanTestOps
+    with AstConstructionTestSupport {
 
   /**
    * Get a builder for incomplete logical plans with an ID offset.

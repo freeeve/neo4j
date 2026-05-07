@@ -20,12 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class FuseSelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class FuseSelectionsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("merges two selections into one") {
     val p1 = propEquality("a", "foo", 12)

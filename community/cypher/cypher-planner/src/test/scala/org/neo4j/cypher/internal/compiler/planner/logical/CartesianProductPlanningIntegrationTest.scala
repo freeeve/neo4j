@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Batched
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
@@ -29,13 +30,13 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 /**
  * For CartesianProducts connecting disconnected components this class tests only greedy,
  * the idp counterpart is tested in [[ConnectComponentsPlanningIntegrationTest]].
  */
-class CartesianProductPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class CartesianProductPlanningIntegrationTest extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport {
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder().enableConnectComponentsPlanner(false)

@@ -23,6 +23,7 @@ import org.mockito.Answers.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.logical.plans.Ascending
@@ -30,9 +31,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class OrderingTest extends CypherFunSuite with AstConstructionTestSupport {
+class OrderingTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   implicit val noPlan: Option[LogicalPlan] = None
   implicit val poFactory: ProvidedOrderFactory = DefaultProvidedOrderFactory

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -27,9 +28,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class TransactionBatchByRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class TransactionBatchByRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should rewrite concurrent TransactionApply with unique index seek + setNodeProperties") {
     val plan = new LogicalPlanBuilder()

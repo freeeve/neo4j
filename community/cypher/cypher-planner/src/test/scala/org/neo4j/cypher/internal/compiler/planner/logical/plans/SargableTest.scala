@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -46,10 +47,9 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTStringNotNull
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues.convertOptionToValuable
 
-class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
+class SargableTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val expr1 = mock[Expression]
   private val expr2 = mock[Expression]

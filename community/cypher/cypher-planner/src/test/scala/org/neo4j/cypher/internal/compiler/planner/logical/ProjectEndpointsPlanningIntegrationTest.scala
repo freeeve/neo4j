@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ProjectEndpointsPlanningIntegrationTest extends CypherFunSuite
+class ProjectEndpointsPlanningIntegrationTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport {
 
   private val planner = plannerBuilder()

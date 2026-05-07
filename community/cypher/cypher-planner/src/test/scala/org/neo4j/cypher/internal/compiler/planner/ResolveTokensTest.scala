@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.ResolveTokensTest.AllPathsPattern
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.HasLabels
@@ -59,10 +60,9 @@ import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.EndpointType
 
-class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
+class ResolveTokensTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   parseTest("match (n) where n.name = 'Resolved' return *") { query =>
     val planContext = mockPlanContext(propertyIds = Map("name" -> 12))

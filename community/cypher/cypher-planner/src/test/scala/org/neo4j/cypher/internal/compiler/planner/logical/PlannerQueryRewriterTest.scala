@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.SyntaxExceptionCreator
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.StatementConverters
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -39,13 +40,12 @@ import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.util.Success
 import scala.util.Try
 
 trait PlannerQueryRewriterTest {
-  self: CypherFunSuite =>
+  self: CypherPlannerTestSuite =>
 
   private def parse(query: String, exceptionFactory: CypherExceptionFactory): Statement = {
     val defaultStatement = parse(CypherVersion.Legacy.legacyVersion(), query, exceptionFactory)

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingScanHint
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -40,9 +41,8 @@ import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTFloat
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class QueryGraphConnectedComponentsTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class QueryGraphConnectedComponentsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val A = v"a"
   private val B = v"b"

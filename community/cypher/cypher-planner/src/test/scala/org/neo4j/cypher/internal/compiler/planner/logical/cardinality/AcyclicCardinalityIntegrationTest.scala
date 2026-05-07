@@ -21,15 +21,15 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 /**
  * Whenever there is more than one QPP in the path pattern, there may be too much or too few uniqueness checks.
  * The estimation of DisjointNodes is not accurate.
  */
-class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport {
+class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with CardinalityIntegrationTestSupport {
   private val allNodes: Double = 1000.0
   private val allRels: Double = 50000.0
   private val rRels: Double = 100.0

@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SymmetricalLogicalPlanEqualityTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class SymmetricalLogicalPlanEqualityTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
   private def planBuilder: LogicalPlanBuilder = plannerBuilder().setAllNodesCardinality(100).build().subPlanBuilder()
 
   test("simple Cartesian product should be symmetrical") {

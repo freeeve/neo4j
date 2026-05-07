@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnnestCartesianProductTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class UnnestCartesianProductTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   test("should unnest cartesian product with a single Argument on the lhs") {
     val input = new LogicalPlanBuilder()

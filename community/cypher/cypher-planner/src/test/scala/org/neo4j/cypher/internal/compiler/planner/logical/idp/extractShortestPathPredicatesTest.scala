@@ -21,14 +21,14 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class extractShortestPathPredicatesTest extends CypherFunSuite with AstConstructionTestSupport {
+class extractShortestPathPredicatesTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("p=shortestPath((a)-[*]->(b))") {
     val (nodePredicates, relationshipPredicates, solvedPredicates) =

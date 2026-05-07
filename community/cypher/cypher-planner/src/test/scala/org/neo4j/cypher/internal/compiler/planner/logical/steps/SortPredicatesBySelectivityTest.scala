@@ -22,14 +22,14 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SortPredicatesBySelectivity.groupReorderablePredicates
 import org.neo4j.cypher.internal.util.CostPerRow
 import org.neo4j.cypher.internal.util.PredicateCost
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
-class SortPredicatesBySelectivityTest extends CypherFunSuite with AstConstructionTestSupport with OptionValues {
+class SortPredicatesBySelectivityTest extends CypherPlannerTestSuite with AstConstructionTestSupport with OptionValues {
 
   private val cheap = PredicateCost(CostPerRow(0.5), Selectivity.of(0.1).value)
   private val expensive = PredicateCost(CostPerRow(0.7), Selectivity.of(0.1).value)

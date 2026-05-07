@@ -20,11 +20,11 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.SpdSelections.SpdSelectionAndChild
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class SpdSelectionsUnapplyTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   private val planner = plannerBuilder()

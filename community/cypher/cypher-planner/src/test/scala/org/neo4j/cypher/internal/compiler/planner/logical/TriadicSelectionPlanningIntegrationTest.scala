@@ -19,12 +19,13 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class TriadicSelectionPlanningIntegrationTest extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport {
 
   private val planner = plannerBuilder()
     .setAllNodesCardinality(1000)

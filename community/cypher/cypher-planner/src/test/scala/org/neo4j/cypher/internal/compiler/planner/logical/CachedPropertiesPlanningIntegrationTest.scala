@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.logical.plans.CacheProperties
 import org.neo4j.cypher.internal.options.CypherDebugOption.disablePropertyCaching
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class CachedPropertiesPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   test("should cache node property on multiple usages") {

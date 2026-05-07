@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allNodesLeafPlanner
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class AllNodesLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class AllNodesLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("simple all nodes scan") {
     // given

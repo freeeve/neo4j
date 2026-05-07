@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.StubbedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
@@ -53,11 +54,10 @@ import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
 class MergeRelationshipUniqueIndexSeekLeafPlanningTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningTestSupport2
     with AstConstructionTestSupport {
 

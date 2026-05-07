@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern
 import org.neo4j.cypher.internal.ir.NodeBinding
@@ -30,9 +31,8 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class NodeConnectionManipulationTest extends CypherFunSuite with NodeConnectionManipulation
+class NodeConnectionManipulationTest extends CypherPlannerTestSuite with NodeConnectionManipulation
     with AstConstructionTestSupport {
 
   test(

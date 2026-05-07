@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedGroupVariablesRewriterTest.`(a) ((n)-[r]-(m))+ (b)`
@@ -37,10 +38,9 @@ import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 
-class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class RemoveUnusedGroupVariablesRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   // all node group variables unused
   test("MATCH (a) ((n)-[r]->(m))+ (b) RETURN r") {
@@ -535,7 +535,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
   }
 }
 
-object RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite {
+object RemoveUnusedGroupVariablesRewriterTest extends CypherPlannerTestSuite {
 
   object `(a) ((n)-[r]-(m))+ (b)` {
 

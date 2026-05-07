@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner
@@ -41,9 +42,8 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("simple dynamic outgoing relationship type scan") {
     val r = v"r"

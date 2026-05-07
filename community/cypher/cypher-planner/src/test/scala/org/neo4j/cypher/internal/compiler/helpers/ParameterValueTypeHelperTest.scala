@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.helpers
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper.asCypherTypeMap
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper.deriveCypherType
 import org.neo4j.cypher.internal.util.UnknownSize
@@ -38,7 +39,6 @@ import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo.MAP
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo.POINT
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo.STRING
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo.TIME
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.values.storable.CoordinateReferenceSystem
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.DateValue
@@ -58,7 +58,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
-class ParameterValueTypeHelperTest extends CypherFunSuite {
+class ParameterValueTypeHelperTest extends CypherPlannerTestSuite {
 
   test("translating map of parameters into map of cypher types should work (no sizeHint)") {
     // GIVEN

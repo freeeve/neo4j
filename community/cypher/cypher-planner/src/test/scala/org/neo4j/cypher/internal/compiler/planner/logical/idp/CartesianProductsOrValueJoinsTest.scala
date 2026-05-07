@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Batched
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins.JoinPredicate
@@ -51,10 +52,9 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
-class CartesianProductsOrValueJoinsTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class CartesianProductsOrValueJoinsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
   private val planA = allNodesScan("a")
   private val planB = allNodesScan("b")
   private val planC = allNodesScan("c")

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.VarPatternLength
@@ -35,9 +36,8 @@ import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.VarExpand
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnnestOptionalTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class UnnestOptionalTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should rewrite Apply/Optional/Expand to OptionalExpand when lhs of expand is single row") {
     val argument: LogicalPlan = Argument(Set(v"a"))

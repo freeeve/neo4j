@@ -26,6 +26,7 @@ import org.mockito.Mockito.when
 import org.mockito.verification.VerificationMode
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlanner.CacheKeyInner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlanner.CacheKeyOuter
@@ -52,11 +53,10 @@ import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.SameId
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class CacheBackedQPPInnerPlannerTest extends CypherFunSuite with AstConstructionTestSupport {
+class CacheBackedQPPInnerPlannerTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("Should plan 1 time even for identical requests") {
     val planner = mockPlanner()
@@ -152,7 +152,7 @@ class CacheBackedQPPInnerPlannerTest extends CypherFunSuite with AstConstruction
   }
 }
 
-object CacheBackedQPPInnerPlannerTest extends CypherFunSuite with AstConstructionTestSupport {
+object CacheBackedQPPInnerPlannerTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   implicit class QPPInnerPlannerOps(planner: QPPInnerPlanner) {
 

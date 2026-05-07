@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
@@ -71,11 +72,10 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.lang.Boolean.FALSE
 
-class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class ShortestPathPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport with CypherVersionTestSupport {
 
   private val plannerBase = plannerBuilder()

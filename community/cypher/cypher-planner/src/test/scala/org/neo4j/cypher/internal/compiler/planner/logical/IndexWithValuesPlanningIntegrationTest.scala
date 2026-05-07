@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.merge_optimization_enabled
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
@@ -36,12 +37,11 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.graphdb.schema.IndexType.RANGE
 import org.neo4j.graphdb.schema.IndexType.TEXT
 
-class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class IndexWithValuesPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   private def nodeIndexConfig(

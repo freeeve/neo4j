@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.subtractionLabelScanLeafPlanner
@@ -34,9 +35,8 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.SubtractionNodeByLabelsScan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SubtractionLabelScanLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val variable = v"n"
 

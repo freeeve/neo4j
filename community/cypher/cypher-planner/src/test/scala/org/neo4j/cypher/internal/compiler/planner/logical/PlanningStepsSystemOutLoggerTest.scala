@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.logical.builder.SimpleLogicalPlanBuilder
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PlanningStepsSystemOutLoggerTest extends CypherFunSuite {
+class PlanningStepsSystemOutLoggerTest extends CypherPlannerTestSuite {
 
   private def testPlan(layers: Integer) = {
     val planBuilder = new SimpleLogicalPlanBuilder()

@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.ALL_IF_POSSIBLE
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
@@ -31,11 +32,11 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.lang.Boolean.TRUE
 
-class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class MultiRelationshipExpansionIntegrationTest extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   private val plannerBase = plannerBuilder()

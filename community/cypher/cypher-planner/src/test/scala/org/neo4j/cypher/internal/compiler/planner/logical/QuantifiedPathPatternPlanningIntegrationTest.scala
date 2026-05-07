@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -76,7 +77,6 @@ import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class QuantifiedPathPatternBlockPlanningIntegrationTest extends QuantifiedPathPatternPlanningIntegrationTestBase
     with QuantifiedPathPatternBlockSpecificPlanningIntegrationTestBase {
@@ -88,7 +88,8 @@ class QuantifiedPathPatternAlignedPlanningIntegrationTest extends QuantifiedPath
   override protected def databaseFormat: DatabaseFormat = DatabaseFormat.Aligned
 }
 
-trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport with LogicalPlanningAttributesTestSupport with CypherVersionTestSupport {
 
   protected def databaseFormat: DatabaseFormat

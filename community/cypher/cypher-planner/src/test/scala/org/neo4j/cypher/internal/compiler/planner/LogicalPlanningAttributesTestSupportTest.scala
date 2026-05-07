@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.AttributeComparisonStrategy.ComparingProvidedAttributesOnly
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
@@ -30,11 +31,10 @@ import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFact
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.exceptions.TestFailedException
 
 class LogicalPlanningAttributesTestSupportTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningTestSupport2
     with LogicalPlanningIntegrationTestSupport
     with LogicalPlanningAttributesTestSupport {

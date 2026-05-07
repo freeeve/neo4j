@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 import org.mockito.Mockito.when
 import org.neo4j.common
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -46,9 +47,8 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class UnionRelationshipTypeScanLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("simple outgoing directed type scan") {
     // given

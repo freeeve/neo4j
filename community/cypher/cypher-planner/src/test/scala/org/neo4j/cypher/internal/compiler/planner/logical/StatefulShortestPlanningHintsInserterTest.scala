@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathAll
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathInto
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
@@ -32,9 +33,8 @@ import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with LogicalPlanningTestSupport
+class StatefulShortestPlanningHintsInserterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
     with AstConstructionTestSupport {
 
   private def buildSinglePlannerQueryAndRewrite(

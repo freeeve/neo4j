@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SelectivityCombinerTest extends CypherFunSuite {
+class SelectivityCombinerTest extends CypherPlannerTestSuite {
 
   test("should not lose precision for intermediate numbers") {
     val selectivities = Seq(Selectivity.of(1E-10).get, Selectivity.of(2E-10).get)

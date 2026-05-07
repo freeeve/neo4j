@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.FilterScope
@@ -40,9 +41,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SelectSubQueryPredicatesTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SelectSubQueryPredicatesTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should not return any candidates when there are no predicates to solve") {
     // Given

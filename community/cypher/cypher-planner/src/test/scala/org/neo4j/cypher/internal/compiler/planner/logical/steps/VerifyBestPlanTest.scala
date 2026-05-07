@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingRangeIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingTextIndexType
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -58,7 +59,6 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.HintException
 import org.neo4j.exceptions.IndexHintException
 import org.neo4j.exceptions.IndexHintException.IndexHintIndexType
@@ -66,7 +66,7 @@ import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidHintException
 import org.neo4j.exceptions.JoinHintException
 
-class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class VerifyBestPlanTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private def newNodeIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): IrHint =
     UsingIndexHint(v"a", labelOrRelTypeName("User"), Seq(PropertyKeyName("name")(pos)), indexType = indexType) _

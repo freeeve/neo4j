@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
@@ -40,9 +41,8 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class AcyclicPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport with CypherVersionTestSupport {
 
   private val pb = plannerBuilder()

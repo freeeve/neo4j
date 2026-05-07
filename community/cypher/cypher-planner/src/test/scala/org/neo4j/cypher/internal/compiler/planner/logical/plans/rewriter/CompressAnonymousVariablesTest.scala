@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
@@ -27,9 +28,8 @@ import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CompressAnonymousVariablesTest extends CypherFunSuite
+class CompressAnonymousVariablesTest extends CypherPlannerTestSuite
     with LogicalPlanningAttributesTestSupport
     with LogicalPlanConstructionTestSupport
     with AstConstructionTestSupport {

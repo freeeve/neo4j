@@ -20,12 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.schema
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.planner.spi.NotImplementedPlanContext
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class GraphSchemaOptimizationsTest extends CypherFunSuite with AstConstructionTestSupport {
+class GraphSchemaOptimizationsTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("should not prune labels if there are no implied labels") {
     val gso = givenImpliedLabels()

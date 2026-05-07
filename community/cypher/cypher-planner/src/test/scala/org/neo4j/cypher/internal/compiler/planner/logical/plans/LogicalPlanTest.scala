@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.Eager
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LogicalPlanTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class LogicalPlanTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("single row returns itself as the leafs") {
     val argument = Argument(Set(v"a"))

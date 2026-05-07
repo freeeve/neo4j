@@ -21,14 +21,14 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.JoinHintException
 
 import java.lang.Boolean.TRUE
 
-class NodeHashJoinPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class NodeHashJoinPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   test("should build plans containing joins") {

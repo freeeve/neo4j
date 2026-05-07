@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
@@ -51,7 +52,6 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.graphdb.schema.IndexType.RANGE
 import org.neo4j.graphdb.schema.IndexType.TEXT
@@ -63,7 +63,7 @@ class IndexWithProvidedOrderGreedyPlanningIntegrationTest
     extends IndexWithProvidedOrderPlanningIntegrationTest(QueryGraphSolverWithGreedyConnectComponents)
 
 abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSolverSetup)
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with LogicalPlanningTestSupport2
     with PlanMatchHelp {

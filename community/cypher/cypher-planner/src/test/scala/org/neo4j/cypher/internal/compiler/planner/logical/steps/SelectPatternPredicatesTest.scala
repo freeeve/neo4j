@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -42,9 +43,8 @@ import org.neo4j.cypher.internal.logical.plans.LetSemiApply
 import org.neo4j.cypher.internal.logical.plans.SelectOrAntiSemiApply
 import org.neo4j.cypher.internal.logical.plans.SelectOrSemiApply
 import org.neo4j.cypher.internal.logical.plans.SemiApply
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SelectPatternPredicatesTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SelectPatternPredicatesTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val dir = SemanticDirection.OUTGOING
   private val types = Seq.empty[RelTypeName]

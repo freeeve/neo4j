@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.frontend.helpers.InputDataStreamTestInitialState
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -36,11 +37,10 @@ import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.util.Random
 
-class InputDataStreamPlanningTest extends CypherFunSuite with LogicalPlanningTestSupport2
+class InputDataStreamPlanningTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2
     with AstConstructionTestSupport {
 
   test("INPUT DATA STREAM a, b, c RETURN *") {

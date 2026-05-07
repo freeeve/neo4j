@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanExtension
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LogicalPlanEqualityTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class LogicalPlanEqualityTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("leafs") {
     Leaf(Map("string" -> 42)) should equal(Leaf(Map("string" -> 42)))

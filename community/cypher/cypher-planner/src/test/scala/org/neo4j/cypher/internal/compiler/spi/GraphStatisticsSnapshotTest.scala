@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.spi
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.planner.spi.CardinalityByLabelsAndRelationshipType
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class GraphStatisticsSnapshotTest extends CypherFunSuite {
+class GraphStatisticsSnapshotTest extends CypherPlannerTestSuite {
 
   private val label2 = LabelId(2)
   private val label4 = LabelId(4)

@@ -23,14 +23,14 @@ import org.mockito.Mockito.when
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.NormalizedDatabaseName
 
-class CompositeQueryPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class CompositeQueryPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
 
   // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
   final private val NL: String =

@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class UnionStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class UnionStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("FINISH UNION FINISH") {
     val query = buildPlannerQuery("FINISH UNION FINISH")

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.phases
 
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InitialState
@@ -28,9 +29,8 @@ import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ChainerTest extends CypherFunSuite {
+class ChainerTest extends CypherPlannerTestSuite {
 
   private val BB = new Transformer[BaseContext, BaseState, BaseState] {
     override def transform(from: BaseState, context: BaseContext): BaseState = from

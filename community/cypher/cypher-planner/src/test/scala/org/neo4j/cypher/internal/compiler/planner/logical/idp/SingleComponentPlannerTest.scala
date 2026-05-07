@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
@@ -53,9 +54,8 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SingleComponentPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val noQPPInnerPlans = new CacheBackedQPPInnerPlanner(???)
 

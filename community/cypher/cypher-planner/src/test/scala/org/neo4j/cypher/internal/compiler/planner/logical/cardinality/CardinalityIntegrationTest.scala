@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.subqueryCardinalityToExistsSelectivity
@@ -44,12 +45,11 @@ import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
 import scala.math.sqrt
 
-class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport
+class CardinalityIntegrationTest extends CypherPlannerTestSuite with CardinalityIntegrationTestSupport
     with LogicalPlanningAttributesTestSupport {
 
   private val allNodes = 733.0

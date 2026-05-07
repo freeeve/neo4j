@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
@@ -36,9 +37,8 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PatternRelationshipCardinalityModelTest extends CypherFunSuite with PatternRelationshipCardinalityModel {
+class PatternRelationshipCardinalityModelTest extends CypherPlannerTestSuite with PatternRelationshipCardinalityModel {
 
   test("should return zero if there are no nodes with the given labels") {
     val graphStatistics = new TestGraphStatistics {

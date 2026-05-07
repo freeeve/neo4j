@@ -19,13 +19,13 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 
-class RemoveUnusedVariablesFromOptionTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class RemoveUnusedVariablesFromOptionTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should remove unused variables from an optional and argument") {
     val original = new LogicalPlanBuilder()

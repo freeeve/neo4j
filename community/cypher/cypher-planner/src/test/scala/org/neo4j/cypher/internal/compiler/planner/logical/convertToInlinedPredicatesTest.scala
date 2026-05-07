@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
@@ -34,10 +35,9 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
-class convertToInlinedPredicatesTest extends CypherFunSuite with AstConstructionTestSupport with OptionValues {
+class convertToInlinedPredicatesTest extends CypherPlannerTestSuite with AstConstructionTestSupport with OptionValues {
 
   private val outerStart = v"outerStart"
   private val innerStart = v"innerStart"

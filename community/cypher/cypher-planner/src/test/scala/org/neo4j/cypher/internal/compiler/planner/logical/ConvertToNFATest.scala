@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern
 import org.neo4j.cypher.internal.ir.NodeBinding
@@ -38,10 +39,9 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.InternalException
 
-class ConvertToNFATest extends CypherFunSuite with AstConstructionTestSupport {
+class ConvertToNFATest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val `(start) ((a)-[r]->(b))+ (end)` = QuantifiedPathPattern(
     leftBinding = NodeBinding(v"a", v"start"),

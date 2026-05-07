@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
@@ -46,9 +47,8 @@ import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LimitRangesOnSelectivePathPatternTest extends CypherFunSuite with LogicalPlanningTestSupport
+class LimitRangesOnSelectivePathPatternTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
     with AstConstructionTestSupport {
 
   test("should move QPP max limit from QPP to SPP predicate when above 100") {

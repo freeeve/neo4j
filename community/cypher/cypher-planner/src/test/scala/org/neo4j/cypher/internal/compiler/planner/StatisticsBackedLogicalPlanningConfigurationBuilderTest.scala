@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.graphcounts.GraphCountsJson
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.ExistenceConstraintDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexCapabilities
@@ -34,7 +35,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.ExistsSubqueryPl
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.options.CypherDebugOption
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexCapability
@@ -44,7 +44,7 @@ import org.scalatest.LoneElement
 
 import java.util.Locale
 
-class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunSuite
+class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport with LoneElement {
 
   /**

@@ -17,19 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.compiler.planner.logical
+package org.neo4j.cypher.internal.compiler
 
-import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
-import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ArgumentPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
-
-  test("should build plans containing single row") {
-    val cfg = plannerBuilder().setAllNodesCardinality(100).build()
-    val plan = cfg.plan("RETURN 42").stripProduceResults
-    plan shouldEqual cfg.subPlanBuilder()
-      .projection("42 AS 42")
-      .argument()
-      .build()
-  }
-}
+trait CypherPlannerTestSuite extends CypherFunSuite

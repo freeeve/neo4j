@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -45,7 +46,6 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 /**
  * USE clauses behave differently depending the semantic features at hand:
@@ -54,7 +54,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
  *   - 'USE single graph selector' -> USE clauses have already been handled by the query router and are essentially ignored at this point, see [[StandardStatementConvertersTest]]
  *   - otherwise -> USE clauses are not allowed
  */
-class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class CompositeStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
   final private val NL: String =
@@ -727,7 +727,7 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
       )
 }
 
-class StandardStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class StandardStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   override val semanticFeatures: List[SemanticFeature] = List(
     SemanticFeature.UseAsSingleGraphSelector

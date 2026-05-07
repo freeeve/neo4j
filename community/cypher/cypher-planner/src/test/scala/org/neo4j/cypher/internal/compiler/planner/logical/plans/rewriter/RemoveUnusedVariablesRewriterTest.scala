@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriterTest.beRewrittenTo
@@ -26,11 +27,10 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveU
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriterTest.thePlan
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 
-class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class RemoveUnusedVariablesRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("remove both start and end node") {
     thePlan(
@@ -258,7 +258,7 @@ class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlann
   }
 }
 
-object RemoveUnusedVariablesRewriterTest extends CypherFunSuite {
+object RemoveUnusedVariablesRewriterTest extends CypherPlannerTestSuite {
 
   case class beRewrittenTo(factory: LogicalPlanBuilder => LogicalPlanBuilder) extends Matcher[LogicalPlan] {
 

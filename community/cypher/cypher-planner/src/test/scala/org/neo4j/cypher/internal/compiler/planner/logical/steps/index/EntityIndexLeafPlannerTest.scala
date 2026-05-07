@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsBoundingBoxSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsDistanceSeekable
@@ -54,10 +55,9 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTStringNotNull
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType
 
-class EntityIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2
+class EntityIndexLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2
     with AstConstructionTestSupport {
 
   private def queryGraph(predicateExpressions: Set[Expression]) = QueryGraph(

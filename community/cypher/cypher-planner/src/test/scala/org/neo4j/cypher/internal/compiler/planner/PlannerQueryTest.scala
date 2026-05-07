@@ -21,12 +21,12 @@ package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PlannerQueryTest extends CypherFunSuite with AstConstructionTestSupport {
+class PlannerQueryTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("pair map") {
 

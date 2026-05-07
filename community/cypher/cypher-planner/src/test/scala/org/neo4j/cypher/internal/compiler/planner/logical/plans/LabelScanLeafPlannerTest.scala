@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.labelScanLeafPlanner
@@ -31,9 +32,8 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.util.LabelId
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class LabelScanLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val n = v"n"
   private val labelId = LabelId(12)

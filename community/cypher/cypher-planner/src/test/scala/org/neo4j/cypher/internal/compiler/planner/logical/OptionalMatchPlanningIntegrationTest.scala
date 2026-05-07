@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.graphcounts.GraphCountsJson
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.AttributeComparisonStrategy.ComparingProvidedAttributesOnly
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
@@ -63,7 +64,6 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.scalatest.Inside
 
@@ -76,7 +76,7 @@ class OptionalMatchGreedyPlanningIntegrationTest
     extends OptionalMatchPlanningIntegrationTest(QueryGraphSolverWithGreedyConnectComponents)
 
 abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSolverSetup)
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningTestSupport2
     with LogicalPlanningIntegrationTestSupport
     with LogicalPlanningAttributesTestSupport

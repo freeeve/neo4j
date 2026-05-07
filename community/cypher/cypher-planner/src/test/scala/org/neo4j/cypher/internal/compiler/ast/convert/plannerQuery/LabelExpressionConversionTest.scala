@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.LabelExpressionConversion.IllegalLabelExpressionException
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.LabelExpressionConversion.NodeLabelsToCreate
 import org.neo4j.cypher.internal.expressions.Expression
@@ -27,10 +28,9 @@ import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class LabelExpressionConversionTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LabelExpressionConversion
     with AstConstructionTestSupport {
 

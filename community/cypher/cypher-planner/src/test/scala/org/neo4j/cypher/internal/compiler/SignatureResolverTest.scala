@@ -23,14 +23,13 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.helpers.ProcedureLookup
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes
 import org.neo4j.internal.kernel.api.procs.ProcedureHandle
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.internal.kernel.api.procs.UserFunctionHandle
 import org.neo4j.internal.kernel.api.procs.UserFunctionSignature
 
-class SignatureResolverTest extends CypherFunSuite with AstConstructionTestSupport {
+class SignatureResolverTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val funcName = functionName("my", "func")
   private val aggFuncName = functionName("my", "aggFunc")

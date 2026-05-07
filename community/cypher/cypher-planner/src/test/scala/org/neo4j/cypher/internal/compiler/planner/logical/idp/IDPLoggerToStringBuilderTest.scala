@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.scalatest.OptionValues
 
-class IDPLoggerToStringBuilderTest extends CypherFunSuite with OptionValues {
+class IDPLoggerToStringBuilderTest extends CypherPlannerTestSuite with OptionValues {
 
   test("should log messages") {
     val l = new IDPLoggerToStringBuilder()

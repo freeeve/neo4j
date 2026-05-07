@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
-class IDPTableTest extends CypherFunSuite {
+class IDPTableTest extends CypherPlannerTestSuite {
 
   test("removes all traces of a goal") {
     val table = IDPTable.empty[LogicalPlan]

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.functions.Length
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -29,11 +30,10 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.BitSet
 
-class GoalBitAllocationTest extends CypherFunSuite with AstConstructionTestSupport {
+class GoalBitAllocationTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("calculates correct sub-goals for full goal") {
     val gba = GoalBitAllocation(3, 5, (0 until 4).map(_ => BitSet.empty))

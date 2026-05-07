@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_STRING_LENGTH
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.subqueryCardinalityToExistsSelectivity
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
@@ -39,14 +40,13 @@ import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.util.Cardinality.lift
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.Extractors.MapKeys
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 
 import scala.math.cbrt
 import scala.math.sqrt
 
-class ABCDECardinalityDataCardinalityIntegrationTest extends CypherFunSuite with ABCDECardinalityData
+class ABCDECardinalityDataCardinalityIntegrationTest extends CypherPlannerTestSuite with ABCDECardinalityData
     with TestName {
 
   test("MATCH (n)") {

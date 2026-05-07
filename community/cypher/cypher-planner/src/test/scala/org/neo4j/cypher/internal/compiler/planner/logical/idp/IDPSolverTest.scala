@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.TestCountdownCancellationChecker
 import org.neo4j.cypher.internal.compiler.planner.logical.ProjectingSelector
 import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
@@ -29,13 +30,12 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.time.FakeClock
 import org.neo4j.time.Stopwatch
 
 import scala.collection.immutable.BitSet
 
-class IDPSolverTest extends CypherFunSuite {
+class IDPSolverTest extends CypherPlannerTestSuite {
 
   implicit val loggableChar: IDPLoggable[Char] = _.toString
 

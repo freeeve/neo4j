@@ -19,15 +19,15 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class OrderedIndexPlansUseCachedPropertiesTest extends CypherFunSuite {
+class OrderedIndexPlansUseCachedPropertiesTest extends CypherPlannerTestSuite {
 
   test("should accept if cached property from ordered node index plan is only used cached") {
     val plan = new LogicalPlanBuilder(false)

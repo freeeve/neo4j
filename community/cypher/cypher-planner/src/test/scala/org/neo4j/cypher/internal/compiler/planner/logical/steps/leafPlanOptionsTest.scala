@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.CandidateSelector
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
@@ -42,9 +43,8 @@ import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class leafPlanOptionsTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   private val allNodesScanLeafPlanner: LeafPlanner = (qg, _, context) =>
     qg.patternNodes.map(node => context.staticComponents.logicalPlanProducer.planAllNodesScan(node, Set.empty, context))

@@ -24,6 +24,7 @@ import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.FakeLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
@@ -41,9 +42,8 @@ import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPlanningTestSupport
+class ShardPredicatePushdownPartitionTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
     with LogicalPlanningTestSupport2 with AstConstructionTestSupport {
 
   private def mockedSemanticTable: SemanticTable = {

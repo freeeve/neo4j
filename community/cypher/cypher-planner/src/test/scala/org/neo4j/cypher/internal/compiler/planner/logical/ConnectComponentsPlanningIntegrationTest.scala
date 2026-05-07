@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Batched
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -55,7 +56,6 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb
 import org.neo4j.graphdb.schema.IndexType
 
@@ -63,7 +63,7 @@ import java.lang
 
 import scala.util.Random
 
-class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class ConnectComponentsPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =

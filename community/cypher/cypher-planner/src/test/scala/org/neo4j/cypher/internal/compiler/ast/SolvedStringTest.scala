@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.compiler.ast
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class SolvedStringTest extends CypherFunSuite with LogicalPlanningTestSupport with TableDrivenPropertyChecks {
+class SolvedStringTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport with TableDrivenPropertyChecks {
 
   private val tests = Table(
     "Cypher" -> "Expected",

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner.SatisfiedForPlan
@@ -40,9 +41,8 @@ import org.neo4j.cypher.internal.logical.plans.PartialSort
 import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SortPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class SortPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   // ---------------
   // maybeSortedPlan

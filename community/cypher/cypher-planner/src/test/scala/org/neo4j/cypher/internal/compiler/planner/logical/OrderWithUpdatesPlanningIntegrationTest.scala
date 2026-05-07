@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -51,13 +52,12 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.ProcedureName
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class OrderWithUpdatesIDPPlanningIntegrationTest extends OrderWithUpdatesPlanningIntegrationTestBase(true)
 class OrderWithUpdatesGreedyPlanningIntegrationTest extends OrderWithUpdatesPlanningIntegrationTestBase(false)
 
 class OrderWithUpdatesPlanningIntegrationTestBase(useIDPConnectComponents: Boolean)
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport {
 
   override def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =

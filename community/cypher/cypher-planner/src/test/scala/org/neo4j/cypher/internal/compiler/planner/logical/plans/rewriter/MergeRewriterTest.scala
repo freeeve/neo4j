@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
@@ -28,9 +29,8 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setL
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class MergeRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class MergeRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should rewrite merge + expandInto") {
     val before = new LogicalPlanBuilder()

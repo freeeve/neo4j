@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
@@ -65,14 +66,13 @@ import org.neo4j.cypher.internal.util.symbols.LocalTimeType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.lang.Boolean.TRUE
 
 import scala.collection.immutable.ArraySeq
 
 class PushOperatorsToShardPlanningIntegrationTest
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport with AstConstructionTestSupport {
 
   protected val spdPlanner = plannerBuilder()

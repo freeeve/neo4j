@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanResolver
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
@@ -52,14 +53,13 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.IdGen
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.scalatest.Assertion
 import org.scalatest.OptionValues
 
 import scala.reflect.ClassTag
 
-class UnnestApplyTest extends CypherFunSuite with LogicalPlanningAttributesTestSupport
+class UnnestApplyTest extends CypherPlannerTestSuite with LogicalPlanningAttributesTestSupport
     with LogicalPlanConstructionTestSupport with AstConstructionTestSupport with ProcedureTestSupport
     with OptionValues {
 

@@ -20,14 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.NodeToRelationshipExpressionRewriter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 
-class NodeToRelationshipExpressionRewriterTest extends CypherFunSuite with AstConstructionTestSupport {
+class NodeToRelationshipExpressionRewriterTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   private val rel = "rel"
 

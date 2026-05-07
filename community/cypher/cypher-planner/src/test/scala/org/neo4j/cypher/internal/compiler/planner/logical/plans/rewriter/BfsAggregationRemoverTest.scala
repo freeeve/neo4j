@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class BfsAggregationRemoverTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class BfsAggregationRemoverTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   /**
    * Distinct positive cases

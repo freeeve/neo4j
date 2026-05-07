@@ -19,15 +19,15 @@
  */
 package org.neo4j.cypher.internal.compiler.planner
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations.Experimental
 import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations.Next
 import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations.V2026_03
 import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations.V2026_04
 import org.neo4j.cypher.internal.compiler.planner.Optimisation.MergeLabelInfo
 import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class CypherPlannerVersionWithOptimisationsTest extends CypherFunSuite {
+class CypherPlannerVersionWithOptimisationsTest extends CypherPlannerTestSuite {
 
   test("latest version is V2026_04") {
     CypherPlannerVersionWithOptimisations.fromQueryOption(CypherPlannerVersionOption.latest) should be(V2026_04)

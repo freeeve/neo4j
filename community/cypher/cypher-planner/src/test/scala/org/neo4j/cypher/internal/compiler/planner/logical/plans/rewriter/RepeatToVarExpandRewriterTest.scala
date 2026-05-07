@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
@@ -48,10 +49,10 @@ import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Attributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 // Additional tests can be found in QuantifiedPathPatternPlanningIntegrationTest
-class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport with LogicalPlanTestOps {
+class RepeatToVarExpandRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport
+    with LogicalPlanTestOps {
 
   // happy case
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) RETURN 1 AS s") {

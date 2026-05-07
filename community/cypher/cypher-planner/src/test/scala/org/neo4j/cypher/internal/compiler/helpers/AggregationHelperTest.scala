@@ -21,10 +21,10 @@ package org.neo4j.cypher.internal.compiler.helpers
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.AggregationHelper.extractPropertyForValue
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class AggregationHelperTest extends CypherFunSuite with AstConstructionTestSupport {
+class AggregationHelperTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("extractPropertyForValue") {
     extractPropertyForValue(v"x", Map.empty) should be(None)

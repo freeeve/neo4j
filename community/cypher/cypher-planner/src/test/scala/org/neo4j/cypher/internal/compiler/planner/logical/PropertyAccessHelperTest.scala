@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.findAggregationPropertyAccesses
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.findLocalPropertyAccesses
@@ -28,9 +29,8 @@ import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.util.symbols.CTString
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PropertyAccessHelperTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class PropertyAccessHelperTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
   val context: LogicalPlanningContext = newMockedLogicalPlanningContext(newMockedPlanContext())
 
   test("should return input context if no aggregation in horizon") {

@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.phases
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Where
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.MatchMode
@@ -35,9 +36,8 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ValidSymbolicNamesInLabelExpressionsTest extends CypherFunSuite with AstConstructionTestSupport {
+class ValidSymbolicNamesInLabelExpressionsTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   val condition: Any => Seq[String] = ValidSymbolicNamesInLabelExpressions(_)(CancellationChecker.NeverCancelled)
 

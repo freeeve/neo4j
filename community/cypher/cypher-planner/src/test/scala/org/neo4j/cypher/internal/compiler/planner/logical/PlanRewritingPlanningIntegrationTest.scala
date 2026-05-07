@@ -21,11 +21,11 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class PlanRewritingPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class PlanRewritingPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   test("should use GetDegree to compute the degree of a node") {

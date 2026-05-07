@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.TestSignatureResolvingPlanContext
 import org.neo4j.cypher.internal.compiler.helpers.FakeLeafPlan
@@ -136,7 +137,6 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTInteger
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.SchemaValueType
@@ -147,7 +147,7 @@ import scala.util.Try
 trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport
     with CypherVersionTestSupport {
-  self: CypherFunSuite =>
+  self: CypherPlannerTestSuite =>
 
   val monitors = mock[Monitors]
   val mockRel = newPatternRelationship("a", "b", "r")

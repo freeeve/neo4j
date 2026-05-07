@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
@@ -38,10 +39,9 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrderCandidate
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.util.symbols.CTDate
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.config.Setting
 
-class InterestingOrderStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class InterestingOrderStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("Extracts required order from query returning the sort column") {
     val result = buildSinglePlannerQuery("MATCH (n) RETURN n.prop ORDER BY n.prop")
@@ -747,7 +747,7 @@ class InterestingOrderStatementConvertersTest extends CypherFunSuite with Logica
     }
 }
 
-class MergeJoinInterestingOrderStatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class MergeJoinInterestingOrderStatementConvertersTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   override protected def databaseConfig: Map[Setting[_], AnyRef] = super.databaseConfig ++ Map(
     GraphDatabaseInternalSettings.planning_merge_join_enabled -> Boolean.box(true)

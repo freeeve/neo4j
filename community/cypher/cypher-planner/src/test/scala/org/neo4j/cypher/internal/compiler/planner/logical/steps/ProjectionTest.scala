@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Projection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class ProjectionTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   test("should add projection for expressions not already covered") {
     // given

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner
@@ -64,10 +65,9 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.symbols.CTInteger
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
-class RelationshipIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class RelationshipIndexLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   private def relationshipIndexLeafPlanner =
     RelationshipIndexLeafPlanner(

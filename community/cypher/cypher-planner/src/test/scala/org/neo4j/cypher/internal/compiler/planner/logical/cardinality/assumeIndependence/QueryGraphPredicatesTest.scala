@@ -21,12 +21,12 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.QueryGraphPredicates.PredicatesWithDisjunctiveLabelInfos
 import org.neo4j.cypher.internal.ir.Predicate
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class QueryGraphPredicatesTest extends CypherFunSuite with AstConstructionTestSupport {
+class QueryGraphPredicatesTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("orLeavedSubPredicates on empty predicates should result in single entry") {
     QueryGraphPredicates.empty.distributeLabelDisjunctionAsLabelInfo.predicatesWithLabelDisjunctionsDistributed should equal(

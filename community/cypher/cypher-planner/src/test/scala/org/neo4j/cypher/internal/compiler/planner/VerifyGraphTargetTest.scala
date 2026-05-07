@@ -27,13 +27,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGrap
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsSingleGraphSelector
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util._
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.messages.MessageUtilProvider
@@ -44,7 +44,7 @@ import org.neo4j.kernel.database._
 
 import java.util.UUID
 
-class VerifyGraphTargetTest extends CypherFunSuite {
+class VerifyGraphTargetTest extends CypherPlannerTestSuite {
 
   val neo4j: DatabaseReferenceImpl.Internal = TestDatabaseReferenceRepository.internalDatabaseReference("neo4j")
   val foo: DatabaseReferenceImpl.Internal = TestDatabaseReferenceRepository.internalDatabaseReference("foo")

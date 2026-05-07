@@ -20,11 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class NodeIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 with AstConstructionTestSupport {
+class NodeIndexLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2
+    with AstConstructionTestSupport {
 
   test("testFindIndexCompatiblePredicates on hasLabel with label with constraint") {
 

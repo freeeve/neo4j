@@ -21,11 +21,11 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.rendering.QueryRenderer
 
-class AllReduceFallbackTest extends CypherFunSuite with AstConstructionTestSupport {
+class AllReduceFallbackTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("allReduce translation to reduce") {
     // allReduce(acc = 0, step IN n | acc + step.x, acc < 11)

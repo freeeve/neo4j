@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.CreateIrExpressions
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.StatementConverters
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.getDegreeRewriterTest.relPattern
@@ -53,9 +54,8 @@ import org.neo4j.cypher.internal.expressions.functions.Size
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.disjoinRelTypesToLabelExpression
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-trait GetDegreeRewriterTestBase extends CypherFunSuite with AstConstructionTestSupport {
+trait GetDegreeRewriterTestBase extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   def createIrExpressions: CreateIrExpressions =
     CreateIrExpressions(

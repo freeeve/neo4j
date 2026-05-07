@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.Optimisation.MergeLabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -36,9 +37,8 @@ import org.neo4j.cypher.internal.planner.spi.TestGraphStatistics
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class LabelInferenceStrategyTest extends CypherFunSuite with AstConstructionTestSupport {
+class LabelInferenceStrategyTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   test("should not infer labels for relationships with too many types") {
     val planContext = testPlanContext(

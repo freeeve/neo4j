@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
@@ -31,11 +32,10 @@ import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.mutable.ArrayBuffer
 
-class PlanSingleQueryTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
+class PlanSingleQueryTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport2 {
 
   private type LogEntry = (PlannerType, Selectivity)
 

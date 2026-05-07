@@ -19,15 +19,15 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport {
+class ForeachPlanningIntegrationTest extends CypherPlannerTestSuite with LogicalPlanningIntegrationTestSupport {
 
   test("should be able to unnest apply for MERGE inside FOREACH") {
     val cfg = plannerBuilder()

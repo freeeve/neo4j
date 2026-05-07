@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -29,9 +30,9 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class NamedPathProjectionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
+class NamedPathProjectionPlanningIntegrationTest extends CypherPlannerTestSuite
+    with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
 
   private def plannerConfig(): StatisticsBackedLogicalPlanningConfiguration =

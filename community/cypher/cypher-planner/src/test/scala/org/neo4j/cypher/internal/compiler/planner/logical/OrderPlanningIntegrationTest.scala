@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
@@ -65,7 +66,6 @@ import org.neo4j.cypher.internal.logical.plans.Sort
 import org.neo4j.cypher.internal.logical.plans.Top
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 import org.scalatest.Assertion
 
@@ -75,7 +75,7 @@ class OrderGreedyPlanningIntegrationTest
     extends OrderPlanningIntegrationTest(QueryGraphSolverWithGreedyConnectComponents)
 
 abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSolverSetup)
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with AstConstructionTestSupport
     with LogicalPlanningIntegrationTestSupport {
 

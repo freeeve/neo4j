@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class FixIdReferencesTest extends CypherFunSuite {
+class FixIdReferencesTest extends CypherPlannerTestSuite {
 
   test("should rewrite IDs correctly with a new ID space") {
     val reasons = Seq(

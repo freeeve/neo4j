@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
@@ -30,10 +31,9 @@ import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.EffectiveCardinality
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 trait CardinalityIntegrationTestSupport extends StatisticsBackedLogicalPlanningSupport {
-  self: CypherFunSuite =>
+  self: CypherPlannerTestSuite =>
 
   val DEFAULT_PREDICATE_SELECTIVITY: Double = PlannerDefaults.DEFAULT_PREDICATE_SELECTIVITY.factor
   val DEFAULT_PROPERTY_SELECTIVITY: Double = PlannerDefaults.DEFAULT_PROPERTY_SELECTIVITY.factor

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanResolver
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
@@ -30,7 +31,6 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class EagerEverywhereRewriterTest extends EagerEverywhereRewriterTestBase {
 
@@ -39,7 +39,7 @@ class EagerEverywhereRewriterTest extends EagerEverywhereRewriterTestBase {
   }
 }
 
-trait EagerEverywhereRewriterTestBase extends CypherFunSuite with LogicalPlanTestOps with ProcedureTestSupport {
+trait EagerEverywhereRewriterTestBase extends CypherPlannerTestSuite with LogicalPlanTestOps with ProcedureTestSupport {
 
   protected def rewriter(planBuilder: LogicalPlanBuilder): EagerRewriter
 

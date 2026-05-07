@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable.TypeGetter
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
@@ -47,11 +48,10 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
 import org.scalatest.exceptions.TestFailedException
 
-class LimitBeforeCountRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class LimitBeforeCountRewriterTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private val intParam = "$intParam"
   private val stringParam = "$stringParam"

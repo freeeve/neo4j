@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.leverageOrder.OrderToLeverageWithAliases
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
@@ -32,11 +33,10 @@ import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.SortedMap
 
-class LeverageOrderTest extends CypherFunSuite with AstConstructionTestSupport {
+class LeverageOrderTest extends CypherPlannerTestSuite with AstConstructionTestSupport {
 
   implicit val noPlan: Option[LogicalPlan] = None
   implicit val poFactory: ProvidedOrderFactory = DefaultProvidedOrderFactory

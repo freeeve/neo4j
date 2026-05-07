@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
@@ -59,9 +60,8 @@ import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNa
 import org.neo4j.cypher.internal.util.symbols
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class IdSeekLeafPlannerTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
 
   private def newMockedMetrics(factory: MetricsFactory): Metrics =
     factory.newMetrics(planContext, evaluator, ExecutionModel.default, CancellationChecker.neverCancelled())

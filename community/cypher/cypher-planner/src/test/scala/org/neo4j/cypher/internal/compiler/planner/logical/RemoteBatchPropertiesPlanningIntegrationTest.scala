@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.AttributeComparisonStrategy.ComparingProvidedAttributesOnly
@@ -70,7 +71,6 @@ import org.neo4j.cypher.internal.util.symbols.CTTime
 import org.neo4j.cypher.internal.util.symbols.CTZonedDateTime
 import org.neo4j.cypher.internal.util.symbols.CTZonedTime
 import org.neo4j.cypher.internal.util.symbols.CypherType
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import scala.collection.immutable.ArraySeq
 
@@ -550,7 +550,7 @@ class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest
 }
 
 abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionModel: ExecutionModel)
-    extends CypherFunSuite
+    extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport

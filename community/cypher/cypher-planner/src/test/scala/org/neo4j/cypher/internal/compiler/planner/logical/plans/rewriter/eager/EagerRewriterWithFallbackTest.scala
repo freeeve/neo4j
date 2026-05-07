@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
 import org.neo4j.cypher.internal.compiler.planner.ProcedureTestSupport
@@ -27,10 +28,9 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.E
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Attributes
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.LoneElement
 
-class EagerRewriterWithFallbackTest extends CypherFunSuite with LogicalPlanTestOps with ProcedureTestSupport
+class EagerRewriterWithFallbackTest extends CypherPlannerTestSuite with LogicalPlanTestOps with ProcedureTestSupport
     with LoneElement {
 
   test("should report errors from both rewriters") {

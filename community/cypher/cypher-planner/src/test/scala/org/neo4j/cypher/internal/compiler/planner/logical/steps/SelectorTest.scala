@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
@@ -33,9 +34,8 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class SelectorTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class SelectorTest extends CypherPlannerTestSuite with LogicalPlanningTestSupport {
   private val planContext = newMockedPlanContext()
 
   test("when a predicate that isn't already solved is solvable it should be applied") {

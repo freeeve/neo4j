@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
+import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
@@ -46,7 +47,6 @@ import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.symbols.CTAny
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.VectorIndexSearchException
 
 class VectorSearchPlanningIntegrationTest
@@ -55,7 +55,7 @@ class VectorSearchPlanningIntegrationTest
 class VectorSearchWithComplexPatternPlanningIntegrationTest
     extends VectorSearchWithComplexPatternPlanningIntegrationTestBase
 
-abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
+abstract class VectorSearchPlanningIntegrationTestBase extends CypherPlannerTestSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport
