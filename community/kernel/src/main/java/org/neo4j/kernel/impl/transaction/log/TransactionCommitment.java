@@ -70,6 +70,18 @@ public class TransactionCommitment implements Commitment {
     }
 
     @Override
+    public void publishEmptyAsCommitted(long transactionCommitTimestamp) {
+        this.transactionCommitTimestamp = transactionCommitTimestamp;
+        transactionIdStore.transactionCommitted(
+                currentBatchAppendIndex, // the missing txids will == the append index of these chunks, so this is valid
+                currentBatchAppendIndex,
+                kernelVersion,
+                checksum,
+                transactionCommitTimestamp,
+                consensusIndex);
+    }
+
+    @Override
     public void publishAsCommitted(long transactionCommitTimestamp, long firstAppendIndex) {
         this.committed = true;
         this.firstAppendIndex = firstAppendIndex;
@@ -87,6 +99,19 @@ public class TransactionCommitment implements Commitment {
                 lastBatch,
                 logPositionBeforeCommit,
                 logPositionAfterCommit);
+    }
+
+    @Override
+    public void publishEmptyAsClosed() {
+        transactionIdStore.transactionClosed(
+                currentBatchAppendIndex, // the missing txids will == the append index of these chunks, so this is valid
+                currentBatchAppendIndex,
+                kernelVersion,
+                logPositionAfterCommit.getLogVersion(),
+                logPositionAfterCommit.getByteOffset(),
+                checksum,
+                transactionCommitTimestamp,
+                consensusIndex);
     }
 
     @Override

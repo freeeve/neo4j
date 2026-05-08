@@ -57,11 +57,17 @@ public class FakeCommitment implements Commitment {
     public void publishAsCommitedLastBatch() {}
 
     @Override
+    public void publishEmptyAsCommitted(long transactionCommitTimestamp) {}
+
+    @Override
     public void publishAsCommitted(long transactionCommitTimestamp, long appendIndex) {
         committed = true;
         transactionIdStore.transactionCommitted(
                 id, appendIndex, DEFAULT_BOOTSTRAP_VERSION, CHECKSUM, TIMESTAMP, CONSENSUS_INDEX);
     }
+
+    @Override
+    public void publishEmptyAsClosed() {}
 
     @Override
     public void publishAsClosed() {

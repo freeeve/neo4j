@@ -871,6 +871,8 @@ class RecoveryCorruptedTransactionLogIT {
             DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
+            // This assertion has the potential to be brittle, as the expected failure depends in part on how much of
+            // the corrupted data we read before hitting a fail state. That can change unpredictably with data shape.
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
                     .rootCause()
                     .isInstanceOfAny(NegativeArraySizeException.class, BadLogEntryException.class);

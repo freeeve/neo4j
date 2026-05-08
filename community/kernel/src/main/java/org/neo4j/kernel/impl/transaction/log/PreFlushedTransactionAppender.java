@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.monitoring.Panic;
+import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogPositionMetadata;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
@@ -36,10 +37,13 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
  */
 public class PreFlushedTransactionAppender extends LifecycleAdapter implements TransactionAppender {
     private final Panic databasePanic;
+    private final AppendIndexProvider appendIndexProvider;
     private final TransactionMetadataCache metadataCache;
 
-    public PreFlushedTransactionAppender(Panic databasePanic, TransactionMetadataCache metadataCache) {
+    public PreFlushedTransactionAppender(
+            Panic databasePanic, AppendIndexProvider appendIndexProvider, TransactionMetadataCache metadataCache) {
         this.databasePanic = databasePanic;
+        this.appendIndexProvider = appendIndexProvider;
         this.metadataCache = metadataCache;
     }
 
@@ -63,7 +67,8 @@ public class PreFlushedTransactionAppender extends LifecycleAdapter implements T
                 if (metadata.appendIndex() != commands.commandBatch().appendIndex()) {
                     throw new IllegalStateException(format(
                             "Expected append index, both on the metadata (%d) and on the command batch (%d), to be "
-                                    + "equal, but they aren't. Transaction in question: %s, which starts at position: %s",
+                                    + "equal, but they aren't. Transaction in question: %s, which starts at position: "
+                                    + "%s",
                             metadata.appendIndex(),
                             commands.commandBatch().appendIndex(),
                             commands,
@@ -72,13 +77,26 @@ public class PreFlushedTransactionAppender extends LifecycleAdapter implements T
 
                 if (commands.commandBatch().isFirst() && commands.transactionId() != metadata.appendIndex()) {
                     throw new IllegalStateException(format(
-                            "Expected transactionId (%d) and append index (%d), to be equal, but they aren't. Transaction in question: %s,"
-                                    + " which starts at position: %s",
+                            "Expected transactionId (%d) and append index (%d), to be equal, but they aren't. "
+                                    + "Transaction in question: %s, which starts at position: %s",
                             commands.transactionId(), metadata.appendIndex(), commands, metadata.prePosition()));
+                }
+
+                // Maintain and validate append index
+                long nextProvidedAppendIndex = appendIndexProvider.nextAppendIndex();
+                if (nextProvidedAppendIndex != metadata.appendIndex()) {
+                    throw new IllegalStateException(format(
+                            "Append index (%d) was supposed to be %d. The fact that it isn't means that append index "
+                                    + "isn't monotonically increasing. Transaction in question: %s, which starts at "
+                                    + "position: %s",
+                            metadata.appendIndex(), nextProvidedAppendIndex, commands, metadata.prePosition()));
                 }
 
                 // Compute txid
                 commands.transactionId();
+                // Because we're on Merged Logs, some txs (specifically non-first multichunked) need to take an extra
+                // step to maintain our gap-free sequences properly.
+                commands.fillGapsOnCloseIfRelevant(true);
                 // Inform TransactionMetadataCache and TransactionIdStore of new tx
                 metadataCache.cacheTransactionMetadata(metadata.appendIndex(), metadata.prePosition());
                 commands.batchAppended(

@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.Config;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
@@ -49,6 +50,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.LogPositionMetadata;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -57,15 +59,17 @@ public class PreFlushedTransactionAppenderTest {
     private final Panic databasePanic = mock(DatabaseHealth.class);
     private final TransactionIdStore transactionIdStore = mock(TransactionIdStore.class);
     private final TransactionIdGenerator transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
+    private static final long FIRST_APPEND_INDEX = BASE_APPEND_INDEX + 1;
 
     @Test
     void shouldRegisterCommitmentsForBatchOfTransactions()
             throws IOException, ExecutionException, InterruptedException {
         // GIVEN - a publisher, and a complete transaction batch
+        var appendIndexProvider = new LogMetadataProviderImpl(new EmptyLogTailMetadata(Config.defaults()));
         var metadataCache = new TransactionMetadataCache();
-        var publisher = new PreFlushedTransactionAppender(databasePanic, metadataCache);
+        var publisher = new PreFlushedTransactionAppender(databasePanic, appendIndexProvider, metadataCache);
         when(transactionIdStore.nextCommittingTransactionId())
-                .thenReturn(BASE_APPEND_INDEX, BASE_APPEND_INDEX + 1, BASE_APPEND_INDEX + 2);
+                .thenReturn(FIRST_APPEND_INDEX, FIRST_APPEND_INDEX + 1, FIRST_APPEND_INDEX + 2);
 
         CompleteTransaction batch = completeTxBatch(3, PreFlushedTransactionAppenderTest::createBelievableMetadata);
 
@@ -73,10 +77,10 @@ public class PreFlushedTransactionAppenderTest {
         long lastAppendIndex = publisher.register(batch, LogAppendEvent.NULL);
 
         // THEN - it returns the correct append index
-        assertEquals(3, lastAppendIndex);
+        assertEquals(4, lastAppendIndex);
 
-        LogPositionMetadata lastExpected = createBelievableMetadata(BASE_APPEND_INDEX + 2);
-        for (long appendIndex = BASE_APPEND_INDEX; appendIndex < BASE_APPEND_INDEX + 3; appendIndex++) {
+        LogPositionMetadata lastExpected = createBelievableMetadata(FIRST_APPEND_INDEX + 2);
+        for (long appendIndex = FIRST_APPEND_INDEX; appendIndex < FIRST_APPEND_INDEX + 3; appendIndex++) {
             LogPositionMetadata expected = createBelievableMetadata(appendIndex);
 
             // THEN - it has written and published the commitments from a batch of transactions
@@ -98,8 +102,9 @@ public class PreFlushedTransactionAppenderTest {
     @Test
     void shouldThrowIfMetadataNotProperlySet() {
         // GIVEN - a publisher, and a complete transaction batch with invalid metadata
+        var appendIndexProvider = new LogMetadataProviderImpl(new EmptyLogTailMetadata(Config.defaults()));
         var metadataCache = new TransactionMetadataCache();
-        var publisher = new PreFlushedTransactionAppender(databasePanic, metadataCache);
+        var publisher = new PreFlushedTransactionAppender(databasePanic, appendIndexProvider, metadataCache);
 
         CompleteTransaction batch = completeTxBatch(1, LogPositionMetadata::metadataWithJustAppendIndex);
 
@@ -113,7 +118,7 @@ public class PreFlushedTransactionAppenderTest {
                 .transactionCommitted(anyLong(), anyLong(), any(), anyInt(), anyLong(), anyLong());
 
         // THEN - no metadata was ever cached
-        assertNull(metadataCache.getTransactionMetadata(BASE_APPEND_INDEX));
+        assertNull(metadataCache.getTransactionMetadata(FIRST_APPEND_INDEX));
     }
 
     /**
@@ -127,7 +132,7 @@ public class PreFlushedTransactionAppenderTest {
         CompleteTransaction first = null;
         CompleteTransaction last = null;
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
-        for (long appendIndex = BASE_APPEND_INDEX; appendIndex < BASE_APPEND_INDEX + transactions; appendIndex++) {
+        for (long appendIndex = FIRST_APPEND_INDEX; appendIndex < FIRST_APPEND_INDEX + transactions; appendIndex++) {
             CompleteTransaction tx = new CompleteTransaction(
                     transaction(appendIndex),
                     NULL_CONTEXT,

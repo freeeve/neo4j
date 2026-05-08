@@ -80,6 +80,24 @@ public interface StorageEngineTransaction extends AutoCloseable {
      */
     void onClose(LongConsumer closedCallback);
 
+    /**
+     * The chunks in multi-chunked transactions all share a transaction id. On merged logs, this can result in gaps in
+     * our metadata store, as that txid is based on the append index of the first chunk. This method returns true if we
+     * are on merged logs and therefore need to fill those gaps.
+     */
+    default boolean fillGapsOnCloseIfRelevant() {
+        return false;
+    }
+
+    /**
+     * The chunks in multi-chunked transactions all share a transaction id. On merged logs, this can result in gaps in
+     * our metadata store, as that txid is based on the append index of the first chunk. This method should be called
+     * with {@code true} when registering txs on merged logs.
+     */
+    default void fillGapsOnCloseIfRelevant(boolean fillGapsOnClose) {
+        // No-op by default
+    }
+
     void commit();
 
     /**

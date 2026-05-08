@@ -47,7 +47,13 @@ public interface Commitment {
         public void publishAsCommitedLastBatch() {}
 
         @Override
+        public void publishEmptyAsCommitted(long transactionCommitTimestamp) {}
+
+        @Override
         public void publishAsCommitted(long transactionCommitTimestamp, long firstAppendIndex) {}
+
+        @Override
+        public void publishEmptyAsClosed() {}
 
         @Override
         public void publishAsClosed() {}
@@ -70,9 +76,27 @@ public interface Commitment {
     void publishAsCommitedLastBatch();
 
     /**
+     * Marks non-first chunks of multi-chunked transactions as committed.
+     *
+     * <p>The chunks in multi-chunked transactions all share a transaction id. On merged logs, this can result in gaps,
+     * as that txid is based on the append index of the first chunk. We must fill those gaps by "publishing" the commit
+     * of each chunk.
+     */
+    void publishEmptyAsCommitted(long transactionCommitTimestamp);
+
+    /**
      * Marks the transaction as committed and makes this fact public.
      */
     void publishAsCommitted(long transactionCommitTimestamp, long firstAppendIndex);
+
+    /**
+     * Marks non-first chunks of multi-chunked transactions as closed.
+     *
+     * <p>The chunks in multi-chunked transactions all share a transaction id. On merged logs, this can result in gaps,
+     * as that txid is based on the append index of the first chunk. We must fill those gaps by "publishing" the closing
+     * of each chunk.
+     */
+    void publishEmptyAsClosed();
 
     /**
      * Marks the transaction as closed and makes this fact public.

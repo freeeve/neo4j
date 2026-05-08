@@ -45,7 +45,7 @@ public class TransactionAppenderFactory {
             boolean multiVersioned,
             boolean replicated) {
         if (databaseConfig.get(GraphDatabaseInternalSettings.merged_log) && !systemDatabase && replicated) {
-            return new PreFlushedTransactionAppender(databasePanic, metadataCache);
+            return new PreFlushedTransactionAppender(databasePanic, appendIndexProvider, metadataCache);
         }
 
         if (databaseConfig.get(dedicated_transaction_appender) || multiVersioned) {

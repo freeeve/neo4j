@@ -51,6 +51,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     private StorageEngineTransaction next;
     private long firstAppendIndex;
     private LongConsumer closedCallback;
+    private boolean fillGapsOnClose = false;
 
     public ChunkedTransaction(
             CursorContext cursorContext,
@@ -191,8 +192,23 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     }
 
     @Override
+    public boolean fillGapsOnCloseIfRelevant() {
+        return this.fillGapsOnClose;
+    }
+
+    @Override
+    public void fillGapsOnCloseIfRelevant(boolean fillGapsOnClose) {
+        this.fillGapsOnClose = fillGapsOnClose;
+    }
+
+    @Override
     public void commit() {
         commitment.publishAsCommitedLastBatch();
+
+        if (!chunk.isFirst() && fillGapsOnClose) {
+            commitment.publishEmptyAsCommitted(chunk.chunkMetadata().chunkCommitTime());
+        }
+
         if (chunk.isLast()) {
             commitment.publishAsCommitted(chunk.chunkMetadata().chunkCommitTime(), firstAppendIndex);
         }
@@ -240,6 +256,11 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     @Override
     public void close() {
         commitment.publishAsClosed();
+
+        if (!chunk.isFirst() && fillGapsOnClose) {
+            commitment.publishEmptyAsClosed();
+        }
+
         if (chunk.isLast() && closedCallback != null) {
             closedCallback.accept(transactionId);
         }
