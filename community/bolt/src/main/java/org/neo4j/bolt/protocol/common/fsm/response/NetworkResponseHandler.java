@@ -19,6 +19,7 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.response;
 
+import io.netty.channel.ChannelFutureListener;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -149,13 +150,13 @@ public final class NetworkResponseHandler extends AbstractMetadataAwareResponseH
             metadata = MapValue.EMPTY;
         }
 
-        try {
-            this.connection.writeAndFlush(new SuccessMessage(metadata)).sync();
-
-            this.connection.notifyListenersSafely(
-                    "requestResultSuccess", listener -> listener.onResponseSuccess(metadata));
-        } catch (Throwable ex) {
-            throw new BoltStreamingWriteException("Failed to transmit operation result: Response write failure", ex);
-        }
+        // Buffer the SUCCESS response rather than flushing (and blocking on) it per statement: the scheduling
+        // loop flushes once it has drained the pending jobs (see AtomicSchedulingConnection#doExecuteJobs),
+        // coalescing flushes for batched/pipelined clients and avoiding a blocking sync on the bolt worker
+        // thread. Write failures are surfaced asynchronously through the pipeline, matching the record path.
+        this.connection
+                .write(new SuccessMessage(metadata))
+                .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+        this.connection.notifyListenersSafely("requestResultSuccess", listener -> listener.onResponseSuccess(metadata));
     }
 }

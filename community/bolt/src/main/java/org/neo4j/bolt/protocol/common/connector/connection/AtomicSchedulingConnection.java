@@ -267,6 +267,10 @@ public class AtomicSchedulingConnection extends AbstractConnection {
                     this.executeJob(fsm, it.next());
                 }
 
+                // Flush the batch's buffered responses in a single operation. Responses are now written without
+                // a per-statement flush (see NetworkResponseHandler#onSuccess), so this coalesces the flush over
+                // the whole drained batch instead of paying one flush + blocking sync per statement.
+                this.flush();
             } else {
                 // if there are no jobs, we'll terminate unless there are open transactions or statements remaining
                 // which require us to remain on this thread
@@ -311,6 +315,8 @@ public class AtomicSchedulingConnection extends AbstractConnection {
 
                 if (job != null) {
                     this.executeJob(fsm, job);
+                    // Flush the single job's buffered response before we loop back to wait for more work.
+                    this.flush();
                 } else {
                     // If no job was found in timeout period, check the fsm is still valid,
                     if (!fsm.validate() || !this.connector().configuration().enableTransactionThreadBinding()) {

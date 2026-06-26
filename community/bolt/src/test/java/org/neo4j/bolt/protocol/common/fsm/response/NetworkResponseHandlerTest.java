@@ -93,6 +93,8 @@ class NetworkResponseHandlerTest {
         handler.onMetadata("baz", Values.stringValue("foo"));
 
         handler.onSuccess();
+        // onSuccess now buffers the response; the scheduling loop flushes once the batch drains
+        this.connection.flush();
 
         var response = this.channel.<SuccessMessage>readOutbound();
 
@@ -110,6 +112,8 @@ class NetworkResponseHandlerTest {
         var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onSuccess();
+        // onSuccess now buffers the response; the scheduling loop flushes once the batch drains
+        this.connection.flush();
 
         var response = this.channel.<SuccessMessage>readOutbound();
 
