@@ -202,6 +202,7 @@ case object QueryPlanner
     CompilationContains[PlannerQuery](),
     OptionalMatchRemover.completed,
     GetDegreeRewriterStep.completed,
+    PendantMembershipToExists.completed,
     UnfulfillableQueryRewriter.completed,
     EmptyRelationshipListEndpointProjection.completed,
     VarLengthQuantifierMerger.completed,

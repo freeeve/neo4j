@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.InlineRelationshipType
 import org.neo4j.cypher.internal.compiler.planner.logical.LimitBeforeCountRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.MoveQuantifiedPathPatternPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.OptionalMatchRemover
+import org.neo4j.cypher.internal.compiler.planner.logical.PendantMembershipToExists
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.StatefulShortestPlanningHintsInserter
 import org.neo4j.cypher.internal.compiler.planner.logical.UnfulfillableQueryRewriter
@@ -114,6 +115,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
           OptionalMatchRemover,
           EmptyRelationshipListEndpointProjection,
           GetDegreeRewriterStep,
+          PendantMembershipToExists,
           GroupInequalitiesStep,
           InlineRelationshipTypePredicates,
           UnfulfillableQueryRewriter,
